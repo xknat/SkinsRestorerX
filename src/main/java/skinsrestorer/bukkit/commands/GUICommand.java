@@ -26,7 +26,8 @@ public class GUICommand implements CommandExecutor {
         }
         SkinsGUI.getMenus().put(p.getName(), 0);
         p.openInventory(SkinsGUI.getGUI(0));
-        p.sendMessage(C.c(Locale.MENU_OPEN));
+        if (!Locale.MENU_OPEN())
+            p.sendMessage(C.c(Locale.MENU_OPEN));
         return false;
     }
 }
