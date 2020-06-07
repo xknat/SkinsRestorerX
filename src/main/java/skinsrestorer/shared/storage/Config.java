@@ -4,103 +4,89 @@ import skinsrestorer.shared.utils.YamlConfig;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Config {
 
-    // v This is a hidden feature v
-    public static boolean DISABLE_ONJOIN_SKINS = false;
     public static boolean SKINWITHOUTPERM = false;
-    public static int SKIN_EXPIRES_AFTER = 1;
     public static int SKIN_CHANGE_COOLDOWN = 30;
-    //public static String ALT_PROPERTY_URL = "http://mcapi.de/api/user/"; *just leave it here just for history books*//
+    public static int SKIN_ERROR_COOLDOWN = 5;
+    public static boolean DEFAULT_SKINS_ENABLED = false;
+    public static boolean DEFAULT_SKINS_PREMIUM = false;
+    public static List<String> DEFAULT_SKINS = null;
+    public static boolean DISABLED_SKINS_ENABLED = false;
+    public static List<String> DISABLED_SKINS = null;
+    public static boolean CUSTOM_GUI_ENABLED = false;
+    public static boolean CUSTOM_GUI_ONLY = false;
+    public static List<String> CUSTOM_GUI_SKINS = null;
+    public static boolean DISABLE_PREFIX = true; //TODO: turn false after a few updates
+    public static boolean USE_OLD_SKIN_HELP = false;
+    public static boolean PER_SKIN_PERMISSIONS = false;
+    public static int SKIN_EXPIRES_AFTER = 20;
+    public static boolean MULTIBUNGEE_ENABLED = false;
     public static boolean USE_MYSQL = false;
     public static String MYSQL_HOST = "localhost";
     public static String MYSQL_PORT = "3306";
     public static String MYSQL_DATABASE = "db";
-    public static String MYSQL_SKINTABLE = "Skins";
-    public static String MYSQL_PLAYERTABLE = "Skins";
-    public static String MYSQL_USERNAME = "admin";
+    public static String MYSQL_USERNAME = "root";
     public static String MYSQL_PASSWORD = "pass";
-    public static boolean DEFAULT_SKINS_ENABLED = false;
-    public static boolean DISABLED_SKINS_ENABLED = false;
-    public static List<String> DEFAULT_SKINS = null;
-    public static List<String> DISABLED_SKINS = null;
-    public static boolean MULTIBUNGEE_ENABLED = false;
-    public static String CUSTOMSKINS_USERNAME = "username";
-    public static String CUSTOMSKINS_PASSWORD = "password";
-    public static String CUSTOMSKINS_NAME = "";
-    public static String CUSTOMSKINS_ID = "";
-    public static String CUSTOMSKINS_AUTHTOKEN = "";
-    public static String CUSTOMSKINS_CLIENTTOKEN = "";
+    public static String MYSQL_SKINTABLE = "Skins";
+    public static String MYSQL_PLAYERTABLE = "Players";
+    public static boolean DISABLE_ONJOIN_SKINS = false; // hidden
+    public static boolean NO_SKIN_IF_LOGIN_CANCELED = true;
     public static boolean UPDATER_ENABLED = true;
-    public static boolean AUTOUPDATE = true;
-    private static YamlConfig config = new YamlConfig(
-            "plugins" + File.separator + "SkinsRestorer" + File.separator + "", "config", true);
+    public static boolean UPDATER_PERIODIC = true;
+    public static boolean USE_NEW_PERMISSIONS = false;
+    public static boolean DEBUG = false;
 
-    public static void load(InputStream is) {
-        config.copyDefaults(is);
+
+    // UPCOMING MULTIPLE LANGUAGE SUPPORT
+    public static String LOCALE_FILE = "english.yml";
+
+    // private static YamlConfig config = new YamlConfig("plugins" + File.separator + "SkinsRestorer" + File.separator + "", "config", false);
+    private static YamlConfig config;
+
+    public static void load(String path, InputStream is) {
+        config = new YamlConfig(path + File.separator, "config", false);
+        config.saveDefaultConfig(is);
         config.reload();
-        DISABLE_ONJOIN_SKINS = config.getBoolean("DisableOnJoinSkins", DISABLE_ONJOIN_SKINS);
         SKINWITHOUTPERM = config.getBoolean("SkinWithoutPerm", SKINWITHOUTPERM);
         SKIN_CHANGE_COOLDOWN = config.getInt("SkinChangeCooldown", SKIN_CHANGE_COOLDOWN);
-        SKIN_EXPIRES_AFTER = config.getInt("SkinExpiresAfter", SKIN_EXPIRES_AFTER);
+        SKIN_ERROR_COOLDOWN = config.getInt("SkinErrorCooldown", SKIN_ERROR_COOLDOWN);
         DEFAULT_SKINS_ENABLED = config.getBoolean("DefaultSkins.Enabled", DEFAULT_SKINS_ENABLED);
+        DEFAULT_SKINS_PREMIUM = config.getBoolean("DefaultSkins.ApplyForPremium", DEFAULT_SKINS_PREMIUM);
+        DEFAULT_SKINS = config.getStringList("DefaultSkins.Names");
         DISABLED_SKINS_ENABLED = config.getBoolean("DisabledSkins.Enabled", DISABLED_SKINS_ENABLED);
+        DISABLED_SKINS = config.getStringList("CustomGUI.Names");
+        CUSTOM_GUI_ENABLED = config.getBoolean("CustomGUI.Enabled", CUSTOM_GUI_ENABLED);
+        CUSTOM_GUI_ONLY = config.getBoolean("CustomGUI.ShowOnlyCustomGUI", CUSTOM_GUI_ONLY);
+        CUSTOM_GUI_SKINS = config.getStringList("CustomGUI.Names");
+        DISABLE_PREFIX = config.getBoolean("DisablePrefix", DISABLE_PREFIX);
+        USE_OLD_SKIN_HELP = config.getBoolean("UseOldSkinHelp", USE_OLD_SKIN_HELP);
+        PER_SKIN_PERMISSIONS = config.getBoolean("PerSkinPermissions", PER_SKIN_PERMISSIONS);
+        SKIN_EXPIRES_AFTER = config.getInt("SkinExpiresAfter", SKIN_EXPIRES_AFTER);
         MULTIBUNGEE_ENABLED = config.getBoolean("MultiBungee.Enabled", MULTIBUNGEE_ENABLED);
         USE_MYSQL = config.getBoolean("MySQL.Enabled", USE_MYSQL);
         MYSQL_HOST = config.getString("MySQL.Host", MYSQL_HOST);
         MYSQL_PORT = config.getString("MySQL.Port", MYSQL_PORT);
         MYSQL_DATABASE = config.getString("MySQL.Database", MYSQL_DATABASE);
-        MYSQL_SKINTABLE = config.getString("MySQL.SkinTable", MYSQL_SKINTABLE);
-        MYSQL_PLAYERTABLE = config.getString("MySQL.PlayerTable", MYSQL_PLAYERTABLE);
         MYSQL_USERNAME = config.getString("MySQL.Username", MYSQL_USERNAME);
         MYSQL_PASSWORD = config.getString("MySQL.Password", MYSQL_PASSWORD);
-
-        if (config.get("Updater.Enabled") == null) {
-            config.set("Updater.Enabled", true);
-            config.save();
-        }
-
-        if (config.get("SkinExpiresAfter") == null) {
-            config.set("SkinExpiresAfter", 1);
-            config.save();
-        }
-
-        if (config.get("SkinWithoutPerm") == null) {
-            config.set("SkinWithoutPerm", false);
-            config.save();
-        }
-
+        MYSQL_SKINTABLE = config.getString("MySQL.SkinTable", MYSQL_SKINTABLE);
+        MYSQL_PLAYERTABLE = config.getString("MySQL.PlayerTable", MYSQL_PLAYERTABLE);
+        DISABLE_ONJOIN_SKINS = config.getBoolean("DisableOnJoinSkins", DISABLE_ONJOIN_SKINS);
+        NO_SKIN_IF_LOGIN_CANCELED = config.getBoolean("NoSkinIfLoginCanceled", NO_SKIN_IF_LOGIN_CANCELED);
         UPDATER_ENABLED = config.getBoolean("Updater.Enabled");
-        SKINWITHOUTPERM = config.getBoolean("SkinWithoutPerm");
-        DEFAULT_SKINS = config.getStringList("DefaultSkins.Names");
+        UPDATER_PERIODIC = config.getBoolean("Updater.PeriodicChecks", UPDATER_PERIODIC);
+        USE_NEW_PERMISSIONS = config.getBoolean("Permissions.NewPermissions", USE_NEW_PERMISSIONS);
+        DEBUG = config.getBoolean("Debug", DEBUG);
 
-        if (DEFAULT_SKINS == null || DEFAULT_SKINS.isEmpty()) {
-            DEFAULT_SKINS = new ArrayList<>();
-            DEFAULT_SKINS.add("Steve");
-            config.set("DefaultSkins.Names", DEFAULT_SKINS.toArray());
-        }
+        if (!CUSTOM_GUI_ENABLED)
+            CUSTOM_GUI_ONLY = false;
 
-        DISABLED_SKINS = config.getStringList("DisabledSkins.Names");
-        if (DISABLED_SKINS == null || DISABLED_SKINS.isEmpty()) {
-            DISABLED_SKINS = new ArrayList<>();
-            DISABLED_SKINS.add("Steve");
-            config.set("DisabledSkins.Names", DISABLED_SKINS.toArray());
-        }
-
-        try {
-            CUSTOMSKINS_USERNAME = config.getString("CustomSkins.Username");
-            CUSTOMSKINS_PASSWORD = config.getString("CustomSkins.Password");
-            CUSTOMSKINS_NAME = config.getString("CustomSkins.Name");
-            CUSTOMSKINS_ID = config.getString("CustomSkins.ID");
-            CUSTOMSKINS_AUTHTOKEN = config.getString("CustomSkins.Authtoken");
-            CUSTOMSKINS_CLIENTTOKEN = config.getString("CustomSkins.Clienttoken");
-        } catch (Exception e) {
-
-        }
-
+        // Permissions
+        if (PER_SKIN_PERMISSIONS && !USE_NEW_PERMISSIONS)
+            System.out.println("[SkinsRestorer] Warning: PerSkinPermissions only work with Permissions.NewPermissions set to true!");
     }
 
     public static void set(String path, Object value) {
