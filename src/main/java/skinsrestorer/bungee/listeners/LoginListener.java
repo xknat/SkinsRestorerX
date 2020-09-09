@@ -32,21 +32,22 @@ public class LoginListener implements Listener {
             return;
         }
 
-        final PendingConnection connection = e.getConnection();
-        final String nick = connection.getName();
-
-        // Don't change skin if player has no custom skin-name set and his username is invalid
-        if (plugin.getSkinStorage().getPlayerSkin(nick) == null && !C.validUsername(nick)) {
-            System.out.println("[SkinsRestorer] Not applying skin to " + nick + " (invalid username).");
-            return;
-        }
-
         e.registerIntent(plugin);
 
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
+            final PendingConnection connection = e.getConnection();
+            final String nick = connection.getName();
+
+            // Don't change skin if player has no custom skin-name set and his username is invalid
+            if (plugin.getSkinStorage().getPlayerSkin(nick) == null && !C.validUsername(nick)) {
+                System.out.println("[SkinsRestorer] Not applying skin to " + nick + " (invalid username).");
+                return;
+            }
+
             final String skin = plugin.getSkinStorage().getDefaultSkinNameIfEnabled(nick);
 
             try {
+                // todo: add default skinurl support
                 plugin.getSkinApplier().applySkin(null, skin, (InitialHandler) connection);
             } catch (SkinRequestException ignored) {
             } catch (Exception e1) {
@@ -69,12 +70,13 @@ public class LoginListener implements Listener {
             return;
         }*/
 
+        // todo: is this even something we should keep after updaterRework?
         plugin.getProxy().getScheduler().runAsync(plugin, () -> {
             if (plugin.isOutdated()) {
                 final ProxiedPlayer player = e.getPlayer();
 
-                if (player.hasPermission("skinsrestorer.admincommand") || player.hasPermission("skinsrestorer.cmds"))
-                    player.sendMessage(new TextComponent(Locale.OUTDATED));
+                if (player.hasPermission("skinsrestorer.admincommand"))
+                    player.sendMessage(TextComponent.fromLegacyText(Locale.OUTDATED));
             }
         });
     }

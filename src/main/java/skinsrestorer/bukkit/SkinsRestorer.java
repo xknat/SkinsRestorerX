@@ -18,7 +18,6 @@ import skinsrestorer.bukkit.commands.SrCommand;
 import skinsrestorer.bukkit.listener.PlayerJoin;
 import skinsrestorer.bukkit.skinfactory.SkinFactory;
 import skinsrestorer.bukkit.skinfactory.UniversalSkinFactory;
-import skinsrestorer.bungee.listeners.PluginMessageListener;
 import skinsrestorer.shared.storage.Config;
 import skinsrestorer.shared.storage.Locale;
 import skinsrestorer.shared.storage.SkinStorage;
@@ -27,7 +26,6 @@ import skinsrestorer.shared.update.UpdateCheckerGitHub;
 import skinsrestorer.shared.utils.*;
 
 import java.io.*;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -66,9 +64,10 @@ public class SkinsRestorer extends JavaPlugin {
 
     public void onEnable() {
         console = getServer().getConsoleSender();
-        srLogger = new SRLogger();
+        srLogger = new SRLogger(getDataFolder());
 
-        Metrics metrics = new Metrics(this);
+        int pluginId = 1669; // SkinsRestorer's ID on bStats, for Bukkit
+        Metrics metrics = new Metrics(this, pluginId);
         if (metrics.isEnabled()) {
             metrics.addCustomChart(new Metrics.SingleLineChart("mineskin_calls", MetricsCounter::collectMineskin_calls));
             metrics.addCustomChart(new Metrics.SingleLineChart("minetools_calls", MetricsCounter::collectMinetools_calls));
@@ -195,6 +194,10 @@ public class SkinsRestorer extends JavaPlugin {
             return;
         }
 
+        /* ***************************************** *
+         * [!] below is skipped if bungeeEnabled [!] *
+         * ***************************************** */
+
         // Init config files
         Config.load(configPath, getResource("config.yml"));
         Locale.load(configPath);
@@ -311,8 +314,10 @@ public class SkinsRestorer extends JavaPlugin {
         }));
         // Use with @Conditions("permOrSkinWithoutPerm")
 
-        CommandReplacements.getPermissionReplacements().forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+
+        CommandReplacements.permissions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
         CommandReplacements.descriptions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+        CommandReplacements.syntax.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
 
         new CommandPropertiesManager(manager, configPath, getResource("command-messages.properties"));
 
@@ -330,7 +335,8 @@ public class SkinsRestorer extends JavaPlugin {
                         Config.MYSQL_PORT,
                         Config.MYSQL_DATABASE,
                         Config.MYSQL_USERNAME,
-                        Config.MYSQL_PASSWORD
+                        Config.MYSQL_PASSWORD,
+                        Config.MYSQL_CONNECTIONOPTIONS
                 );
 
                 mysql.openConnection();

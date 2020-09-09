@@ -32,6 +32,7 @@ public class Config {
     public static String MYSQL_PASSWORD = "pass";
     public static String MYSQL_SKINTABLE = "Skins";
     public static String MYSQL_PLAYERTABLE = "Players";
+    public static String MYSQL_CONNECTIONOPTIONS = "verifyServerCertificate=false&useSSL=false&serverTimezone=UTC";
     public static boolean DISABLE_ONJOIN_SKINS = false; // hidden
     public static boolean NO_SKIN_IF_LOGIN_CANCELED = true;
     public static boolean UPDATER_ENABLED = true;
@@ -56,7 +57,7 @@ public class Config {
         DEFAULT_SKINS_PREMIUM = config.getBoolean("DefaultSkins.ApplyForPremium", DEFAULT_SKINS_PREMIUM);
         DEFAULT_SKINS = config.getStringList("DefaultSkins.Names");
         DISABLED_SKINS_ENABLED = config.getBoolean("DisabledSkins.Enabled", DISABLED_SKINS_ENABLED);
-        DISABLED_SKINS = config.getStringList("CustomGUI.Names");
+        DISABLED_SKINS = config.getStringList("DisabledSkins.Names");
         CUSTOM_GUI_ENABLED = config.getBoolean("CustomGUI.Enabled", CUSTOM_GUI_ENABLED);
         CUSTOM_GUI_ONLY = config.getBoolean("CustomGUI.ShowOnlyCustomGUI", CUSTOM_GUI_ONLY);
         CUSTOM_GUI_SKINS = config.getStringList("CustomGUI.Names");
@@ -73,6 +74,7 @@ public class Config {
         MYSQL_PASSWORD = config.getString("MySQL.Password", MYSQL_PASSWORD);
         MYSQL_SKINTABLE = config.getString("MySQL.SkinTable", MYSQL_SKINTABLE);
         MYSQL_PLAYERTABLE = config.getString("MySQL.PlayerTable", MYSQL_PLAYERTABLE);
+        MYSQL_CONNECTIONOPTIONS = config.getString("MySQL.ConnectionOptions",MYSQL_CONNECTIONOPTIONS);
         DISABLE_ONJOIN_SKINS = config.getBoolean("DisableOnJoinSkins", DISABLE_ONJOIN_SKINS);
         NO_SKIN_IF_LOGIN_CANCELED = config.getBoolean("NoSkinIfLoginCanceled", NO_SKIN_IF_LOGIN_CANCELED);
         UPDATER_ENABLED = config.getBoolean("Updater.Enabled");

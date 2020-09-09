@@ -35,12 +35,13 @@ public class SkinCommand extends BaseCommand {
 
     @Default @CommandPermission("%skinSet")
     @Description("%helpSkinSet")
-    @Syntax("<skin/url>")
+    @Syntax("%SyntaxDefaultCommand")
     public void onSkinSetShort(Player p, @Single String skin) {
         this.onSkinSetOther(p, new OnlinePlayer(p), skin);
     }
 
     @HelpCommand
+    @Syntax(" [help]")
     public void onHelp(CommandSource commandSource, CommandHelp help) {
         if (Config.USE_OLD_SKIN_HELP)
             sendHelp(commandSource);
@@ -84,23 +85,45 @@ public class SkinCommand extends BaseCommand {
     @Subcommand("update") @CommandPermission("%skinUpdateOther")
     @CommandCompletion("@players")
     @Description("%helpSkinUpdateOther")
+    @Syntax("%SyntaxSkinUpdateOther")
     public void onSkinUpdateOther(CommandSource source, OnlinePlayer target) {
         plugin.getService().execute(() -> {
+            //Check cooldown first
+            if (!source.hasPermission("skinsrestorer.bypasscooldown") && CooldownStorage.hasCooldown(getSenderName(source))) {
+                source.sendMessage(plugin.deserialize(Locale.SKIN_COOLDOWN.replace("%s", "" + CooldownStorage.getCooldown(getSenderName(source)))));
+                return;
+            }
+
             Player p = target.getPlayer();
             String skin = plugin.getSkinStorage().getPlayerSkin(p.getUsername());
 
-            // User has no custom skin set, get the default skin name / his skin
-            if (skin == null)
-                skin = plugin.getSkinStorage().getDefaultSkinNameIfEnabled(p.getUsername(), true);
+            try {
+                if (skin != null) {
+                    //filter skinUrl
+                    if (skin.contains(" ")) {
+                        source.sendMessage(plugin.deserialize(Locale.ERROR_UPDATING_URL));
+                        return;
+                    }
+                    // check if premium name
+                    plugin.getMojangAPI().getUUID(skin);
+                    if (!plugin.getSkinStorage().forceUpdateSkinData(skin)) {
+                        source.sendMessage(plugin.deserialize(Locale.ERROR_UPDATING_SKIN));
+                        return;
+                    }
 
-            if (!plugin.getSkinStorage().forceUpdateSkinData(skin)) {
-                source.sendMessage(plugin.deserialize(Locale.ERROR_UPDATING_SKIN));
+                } else {
+                    // get DefaultSkin
+                    skin = plugin.getSkinStorage().getDefaultSkinNameIfEnabled(p.getUsername(), true);
+                }
+            } catch (SkinRequestException e) {
+                // non premium = cancel
+                source.sendMessage(plugin.deserialize(Locale.ERROR_UPDATING_CUSTOMSKIN));
                 return;
             }
 
             if (this.setSkin(source, p, skin, false)) {
-                if (!getSenderName(source).equals(target.getPlayer().getUsername()))
-                    source.sendMessage(plugin.deserialize(Locale.SUCCESS_UPDATING_SKIN_OTHER.replace("%player", target.getPlayer().getUsername())));
+                if (!getSenderName(source).equals(p.getUsername()))
+                    source.sendMessage(plugin.deserialize(Locale.SUCCESS_UPDATING_SKIN_OTHER.replace("%player", p.getUsername())));
                 else
                     source.sendMessage(plugin.deserialize(Locale.SUCCESS_UPDATING_SKIN));
             }
@@ -109,15 +132,19 @@ public class SkinCommand extends BaseCommand {
 
     @Subcommand("set") @CommandPermission("%skinSet")
     @Description("%helpSkinSet")
-    @Syntax("<skin/url>")
-    public void onSkinSet(Player p, String skin) {
-        this.onSkinSetOther(p, new OnlinePlayer(p), skin);
+    @Syntax("%SyntaxSkinSet")
+    public void onSkinSet(Player p, String[] skin) {
+        if (skin.length > 0) {
+            this.onSkinSetOther(p, new OnlinePlayer(p), skin[0]);
+        } else {
+            throw new InvalidCommandArgument(MessageKeys.INVALID_SYNTAX);
+        }
     }
 
     @Subcommand("set") @CommandPermission("%skinSetOther")
     @CommandCompletion("@players")
     @Description("%helpSkinSetOther")
-    @Syntax("<target> <skin/url>")
+    @Syntax("%SyntaxSkinSetOther")
     public void onSkinSetOther(CommandSource source, OnlinePlayer target, String skin) {
         if (Config.PER_SKIN_PERMISSIONS) {
             if (!source.hasPermission("skinsrestorer.skin." + skin)) {
@@ -135,6 +162,21 @@ public class SkinCommand extends BaseCommand {
                 }
             }
         });
+    }
+
+    @Subcommand("url") @CommandPermission("%skinSetUrl")
+    @Description("%helpSkinSetUrl")
+    @Syntax("%SyntaxSkinUrl")
+    public void onSkinSetUrl(Player p, String[] url) {
+        if (url.length > 0) {
+            if (C.validUrl(url[0])) {
+                this.onSkinSetOther(p, new OnlinePlayer(p), url[0]);
+            } else {
+                p.sendMessage(LegacyComponentSerializer.legacy().deserialize(Locale.ERROR_INVALID_URLSKIN));
+            }
+        } else {
+            throw new InvalidCommandArgument(MessageKeys.INVALID_SYNTAX);
+        }
     }
 
     private boolean setSkin(CommandSource source, Player p, String skin) {
@@ -170,7 +212,7 @@ public class SkinCommand extends BaseCommand {
         plugin.getService().execute(() -> {
             if (C.validUsername(skin)) {
                 try {
-                    plugin.getMojangAPI().getUUID(skin);
+                    plugin.getSkinStorage().getOrCreateSkinForPlayer(skin);
                     if (save) {
                         plugin.getSkinStorage().setPlayerSkin(p.getUsername(), skin);
                         plugin.getSkinApplier().applySkin(p, p.getUsername());

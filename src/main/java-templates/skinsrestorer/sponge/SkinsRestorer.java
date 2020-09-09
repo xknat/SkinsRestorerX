@@ -37,18 +37,10 @@ public class SkinsRestorer {
     private String configPath;
     @Getter
     private SkinApplier skinApplier;
-
     @Getter
     private SRLogger srLogger;
-
-    @Inject
-    private Metrics2 metrics;
-
-    private UpdateChecker updateChecker;
-    private CommandSource console;
     @Getter
     private boolean bungeeEnabled = false;
-
     @Getter
     private SkinStorage skinStorage;
     @Getter
@@ -58,12 +50,24 @@ public class SkinsRestorer {
     @Getter
     private SkinsRestorerSpongeAPI skinsRestorerSpongeAPI;
 
+    private UpdateChecker updateChecker;
+    private CommandSource console;
+
+    private final Metrics2 metrics;
+
+    // The metricsFactory parameter gets injected using @Inject
+    @Inject
+    public SkinsRestorer(Metrics2.Factory metricsFactory) {
+        int pluginId = 2337; // SkinsRestorer's ID on bStats, for Sponge
+        metrics = metricsFactory.make(pluginId);
+    }
+
     @Listener
     public void onInitialize(GameInitializationEvent e) {
-        this.srLogger = new SRLogger();
         instance = this;
         console = Sponge.getServer().getConsole();
         configPath = Sponge.getGame().getConfigManager().getPluginConfig(this).getDirectory().toString();
+        this.srLogger = new SRLogger(new File(configPath));
 
         // Check for updates
         if (Config.UPDATER_ENABLED) {
@@ -135,8 +139,9 @@ public class SkinsRestorer {
             // optional: enable unstable api to use help
             manager.enableUnstableAPI("help");
 
-            CommandReplacements.getPermissionReplacements().forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+            CommandReplacements.permissions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
             CommandReplacements.descriptions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+        CommandReplacements.syntax.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
 
             new CommandPropertiesManager(manager, configPath, getClass().getClassLoader().getResourceAsStream("command-messages.properties"));
 
@@ -155,7 +160,8 @@ public class SkinsRestorer {
                         Config.MYSQL_PORT,
                         Config.MYSQL_DATABASE,
                         Config.MYSQL_USERNAME,
-                        Config.MYSQL_PASSWORD
+                        Config.MYSQL_PASSWORD,
+                        Config.MYSQL_CONNECTIONOPTIONS
                 );
 
                 mysql.openConnection();

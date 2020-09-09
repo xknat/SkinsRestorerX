@@ -1,16 +1,9 @@
 package skinsrestorer.shared.storage;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import lombok.Getter;
 import lombok.Setter;
-import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 import skinsrestorer.shared.exception.SkinRequestException;
-import skinsrestorer.shared.utils.MojangAPI;
-import skinsrestorer.shared.utils.MySQL;
-import skinsrestorer.shared.utils.Property;
-import skinsrestorer.shared.utils.ReflectionUtil;
+import skinsrestorer.shared.utils.*;
 
 import javax.sql.RowSet;
 import java.io.*;
@@ -76,10 +69,11 @@ public class SkinStorage {
 
         Config.DEFAULT_SKINS.forEach(skin -> {
             try {
-                this.setSkinData(skin, this.getMojangAPI().getSkinProperty(this.getMojangAPI().getUUID(skin)));
+                //todo: add try for this.setSkinData(skinentry, this.getMineSkinAPI().genSkin(skin),
+                this.setSkinData(skin, getOrCreateSkinForPlayer(skin));
             } catch (SkinRequestException e) {
-                if (this.getSkinData(skin) == null)
-                    System.out.println("§e[§2SkinsRestorer§e] §cDefault Skin '" + skin + "' request error: " + e.getReason());
+                if (this.getSkinData(skin) == null && !C.validUrl(skin))
+                    System.out.println("[SkinsRestorer] [WARNING] Default Skin '" + skin + "' could not be found or requested.");
             }
         });
     }
@@ -151,11 +145,11 @@ public class SkinStorage {
         return getOrCreateSkinForPlayer(name, false);
     }
 
-    /*
+    /**
      * Returns the custom skin name that player has set.
      *
      * Returns null if player has no custom skin set. (even if its his own name)
-     */
+     **/
     public String getPlayerSkin(String name) {
         name = name.toLowerCase();
         if (Config.USE_MYSQL) {
@@ -179,6 +173,8 @@ public class SkinStorage {
             return null;
 
         } else {
+            //geyser compatibility
+            name = name.replaceAll("\\*", "·");
             File playerFile = new File(folder.getAbsolutePath() + File.separator + "Players" + File.separator + name + ".player");
 
             try {
@@ -211,6 +207,7 @@ public class SkinStorage {
     /**
      * Returns property object containing skin data of the wanted skin
      **/
+    //getSkinData also create while we have getOrCreateSkinForPlayer
     public Object getSkinData(String name, boolean updateOutdated) {
         name = name.toLowerCase();
 
@@ -296,6 +293,8 @@ public class SkinStorage {
         if (Config.USE_MYSQL) {
             mysql.execute("DELETE FROM " + Config.MYSQL_PLAYERTABLE + " WHERE Nick=?", name);
         } else {
+            //geyser compatibility
+            name = name.replaceAll("\\*", "·");
             File playerFile = new File(folder.getAbsolutePath() + File.separator + "Players" + File.separator + name + ".player");
 
             if (playerFile.exists())
@@ -329,6 +328,7 @@ public class SkinStorage {
     public void setPlayerSkin(String name, String skin) {
         name = name.toLowerCase();
         if (Config.USE_MYSQL) {
+            //todo optimization
             RowSet crs = mysql.query("SELECT * FROM " + Config.MYSQL_PLAYERTABLE + " WHERE Nick=?", name);
 
             if (crs == null)
@@ -336,6 +336,8 @@ public class SkinStorage {
             else
                 mysql.execute("UPDATE " + Config.MYSQL_PLAYERTABLE + " SET Skin=? WHERE Nick=?", skin, name);
         } else {
+            //geyser compatibility
+            name = name.replaceAll("\\*", "·");
             File playerFile = new File(folder.getAbsolutePath() + File.separator + "Players" + File.separator + name + ".player");
 
             try {
@@ -409,10 +411,30 @@ public class SkinStorage {
     }
 
     //todo: CUSTOM_GUI
+    // seems to be that crs order is ignored...
     public Map<String, Object> getSkins(int number) {
         if (Config.USE_MYSQL) {
             Map<String, Object> list = new TreeMap<>();
-            RowSet crs = mysql.query("SELECT * FROM " + Config.MYSQL_SKINTABLE + " ORDER BY `Nick`");
+            String filterBy = "";
+            String orderBy = "Nick";
+            if (Config.CUSTOM_GUI_ENABLED) {
+                if (Config.CUSTOM_GUI_ONLY) {
+                    StringBuilder sb = new StringBuilder();
+                    Config.CUSTOM_GUI_SKINS.forEach(skin -> {
+                        sb.append("|").append(skin);
+                    });
+                    filterBy = " WHERE Nick RLIKE '" + sb.substring(1) + "'";
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    Config.CUSTOM_GUI_SKINS.forEach(skin -> {
+                        sb.append(", '").append(skin).append("'");
+                    });
+                    orderBy = "FIELD(Nick" + sb + ") DESC, Nick";
+                }
+            }
+            System.out.println("sql:" + "SELECT Nick, Value, Signature FROM " + Config.MYSQL_SKINTABLE + filterBy + " ORDER BY " + orderBy);
+
+            RowSet crs = mysql.query("SELECT Nick, Value, Signature FROM " + Config.MYSQL_SKINTABLE + filterBy + " ORDER BY " + orderBy);
             int i = 0;
             try {
                 do {
@@ -427,7 +449,11 @@ public class SkinStorage {
             Map<String, Object> list = new TreeMap<>();
             String path = folder.getAbsolutePath() + File.separator + "Skins" + File.separator;
             File folder = new File(path);
-            String[] fileNames = folder.list();
+
+            //filter out non "*.skin" files.
+            FilenameFilter skinFileFilter = (dir, name) -> name.endsWith(".skin");
+
+            String[] fileNames = folder.list(skinFileFilter);
 
             if (fileNames == null)
                 return list;
@@ -459,7 +485,7 @@ public class SkinStorage {
     public Map<String, Property> getSkinsRaw(int number) {
         if (Config.USE_MYSQL) {
             Map<String, Property> list = new TreeMap<>();
-            RowSet crs = mysql.query("SELECT * FROM " + Config.MYSQL_SKINTABLE + " ORDER BY `Nick`");
+            RowSet crs = mysql.query("SELECT Nick, Value, Signature FROM " + Config.MYSQL_SKINTABLE + " ORDER BY `Nick`");
             int i = 0;
             int foundSkins = 0;
             try {
@@ -482,7 +508,11 @@ public class SkinStorage {
             Map<String, Property> list = new TreeMap<>();
             String path = folder.getAbsolutePath() + File.separator + "Skins" + File.separator;
             File folder = new File(path);
-            String[] fileNames = folder.list();
+
+            //filter out non "*.skin" files.
+            FilenameFilter skinFileFilter = (dir, name) -> name.endsWith(".skin");
+
+            String[] fileNames = folder.list(skinFileFilter);
 
             if (fileNames == null)
                 return list;
@@ -531,6 +561,7 @@ public class SkinStorage {
         }
     }
 
+    // skin update [include custom skin flag]
     public boolean forceUpdateSkinData(String skin) {
         try {
             Object textures = this.getMojangAPI().getSkinPropertyBackup(this.getMojangAPI().getUUIDBackup(skin));
@@ -584,4 +615,15 @@ public class SkinStorage {
     public String getDefaultSkinNameIfEnabled(String player) {
         return getDefaultSkinNameIfEnabled(player, false);
     }
+
+    //wip
+    /*public boolean iscustom(String skin) {
+        try {
+            //code
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    } */
 }

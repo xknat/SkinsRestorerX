@@ -14,12 +14,20 @@ public class Locale {
     public static String HELP_SKIN_CLEAR_OTHER = "Clears the skin of another player.";
     public static String HELP_SKIN_UPDATE = "Updates your skin.";
     public static String HELP_SKIN_UPDATE_OTHER = "Updates the skin of another player.";
-    public static String HELP_SKIN_SET = "Sets your skin.";
+    public static String HELP_SKIN_SET = "Set the skin of another player.";
     public static String HELP_SKIN_SET_OTHER = "Sets the skin of another player.";
+    public static String HELP_SKIN_SET_OTHER_URL = "Set a skin by Image_url.png";
     public static String HELP_SR_RELOAD = "Reloads the configuration file.";
     public static String HELP_SR_STATUS = "Checks plugin needed API services";
-    public static String HELP_SR_DROP = "Drops the players skin data.";
-    public static String HELP_SR_PROPS = "Displays the players current skin as properties.";
+    public static String HELP_SR_DROP = "Removes players or skin data.";
+    public static String HELP_SR_PROPS = "Displays the players current skin properties.";
+
+    public static String SYNTAX_DEFAULTCOMMAND = " <skin/url>";
+    public static String SYNTAX_SKINSET = " <skin>";
+    public static String SYNTAX_SKINSET_OTHER = " <target> <skin/url>";
+    public static String SYNTAX_SKINURL = " <url>";
+    public static String SYNTAX_SKINUPDATE_OTHER = " <target>";
+    public static String SYNTAX_SKINCLEAR_OTHER = " <target>";
 
     public static String PLAYER_HAS_NO_PERMISSION_SKIN = "&4Error&8: &cYou don't have permission to set this skin.";
     public static String PLAYER_HAS_NO_PERMISSION_URL = "&4Error&8: &cYou don't have permission to set skins by URL.";
@@ -38,6 +46,7 @@ public class Locale {
 
     public static String ERROR_UPDATING_SKIN = "&4Error&8: &cAn error occurred while updating your skin. Please try again later!";
     public static String ERROR_UPDATING_URL = "&4Error&8: &cYou can't update custom url skins! \n&cRequest again using /skin url";
+    public static String ERROR_UPDATING_CUSTOMSKIN = "&4Error&8: &cSkin can't be updated because its custom.";
     public static String ERROR_INVALID_URLSKIN = "&4Error&8: &cInvalid skin url or format, \n&cTry uploading your skin to imgur and right click 'copy image address' \n&cFor guide see: &c&oskinsrestorer.net/skinurl";
     public static String ERROR_MS_FULL = "&4MS Error&8: &cAPI timed out while uploading your &cskin. Please try again later. (MineSkin)";
     public static String ERROR_MS_GENERIC = "&4MS Error&8: &c%error%";
@@ -53,7 +62,7 @@ public class Locale {
     public static String SKINSMENU_SELECT_SKIN = "&2Click to select this skin";
 
     public static String ADMIN_SET_SKIN = "&2You set %player's skin.";
-    public static String SKIN_DATA_DROPPED = "&2Skin data for player %player dropped.";
+    public static String DATA_DROPPED = "&2Data dropped for %playerOrSkin %targets.";
     public static String STATUS_OK = "&2Mojang API connection successful!";
     public static String ALT_API_FAILED = "&4Error&8: &cSkin Data API is overloaded, please try again later!";
     public static String MS_API_FAILED = "&4Error&8: &cMineSkin API is overloaded, please try again later!";
@@ -66,12 +75,14 @@ public class Locale {
             + "\n   &2/skin <skinname> &7-&f Changes your skin."
             + "\n    &2/skin update &7-&f Updates your skin."
             + "\n    &2/skin clear &7-&f Clears your skin.";
-    
+
     //private static YamlConfig locale = new YamlConfig("plugins" + File.separator + "SkinsRestorer" + File.separator + "", "messages", true);
     private static YamlConfig locale;
 
     public static final String[] IGNORE_PREFIX = {
+            "PREFIX",
             "HELP_",
+            "SYNTAX_",
             "SKINSMENU_TITLE_NEW",
             "SKINSMENU_NEXT_PAGE",
             "SKINSMENU_PREVIOUS_PAGE",
@@ -93,7 +104,7 @@ public class Locale {
 
                 String parsed = C.c(locale.getString(f.getName(), f.get(null)));
                 if (!Config.DISABLE_PREFIX) {
-                    if(!f.toString().contains("HELP_") && !f.toString().contains("SKINSMENU_") && !f.toString().contains("SR_LINE"))
+                    if(!Arrays.stream(IGNORE_PREFIX).anyMatch(f.getName()::contains))
                         parsed = C.c(locale.getString("PREFIX", null)) + parsed;
                 }
                 f.set(null, parsed);
