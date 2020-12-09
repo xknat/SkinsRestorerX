@@ -1,11 +1,14 @@
+
 # SkinsRestorerX
 [![Build Status](https://travis-ci.org/SkinsRestorer/SkinsRestorerX.svg?branch=master)](https://travis-ci.org/SkinsRestorer/SkinsRestorerX)
 [![Current Release](https://img.shields.io/github/release/SkinsRestorer/SkinsRestorerX.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/SkinsRestorer/SkinsRestorerX/latest/total.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/SkinsRestorer/SkinsRestorerX/latest/total.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/releases/latest/download/SkinsRestorer.jar)
 [![Contributors](https://img.shields.io/github/contributors/SkinsRestorer/SkinsRestorerX.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/graphs/contributors)
 [![Commits since last release](https://img.shields.io/github/commits-since/SkinsRestorer/SkinsRestorerX/latest.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/commits/master)
 [![License](https://img.shields.io/github/license/SkinsRestorer/SkinsRestorerX.svg)](https://github.com/SkinsRestorer/SkinsRestorerX/blob/master/LICENSE)
 [![Discord](https://img.shields.io/discord/186794372468178944.svg?color=blue&label=discord&logo=discord)](https://discord.gg/sAhVsyU)
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[[DOWNLOAD LATEST](https://github.com/SkinsRestorer/SkinsRestorerX/releases/latest/download/SkinsRestorer.jar) plugin.jar]  &nbsp;&nbsp;[\[DOWNLOAD DEV-BUILD](https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorerX/lastSuccessfulBuild/artifact/target/SkinsRestorer.jar) plugin.jar]
 
 This is the development repository for SkinsRestorer, used for making and testing new features.
 
@@ -13,7 +16,7 @@ Restoring offline mode skins & changing skins for Bukkit/Spigot, BungeeCord/Wate
 
 ## :telescope: Compatibility
 - Java 8 till 12 (maybe newer also) ([openjdk](https://openjdk.java.net/install/) | Oracle Java)
-- Minecraft 1.8.0 - 1.15.x
+- Minecraft 1.8.0 - 1.16.x
 
 ## :link: Links
 - [Spigot Page](https://www.spigotmc.org/resources/skinsrestorer.2124/)
@@ -21,7 +24,7 @@ Restoring offline mode skins & changing skins for Bukkit/Spigot, BungeeCord/Wate
 - [Sponge ore Page](https://ore.spongepowered.org/SRTeam/SkinsRestorer)
 - [PaperMC](https://papermc.io/forums/t/1-8-1-14-4-skinsrestorer/1996)
 - [Wiki](https://github.com/SkinsRestorer/SkinsRestorerX/wiki/)
-- [Jenkins](https://ci.freecraft.eu/v2/job/SkinsRestorerX/)
+- [Jenkins](https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorerX/)
 - [Discord](https://discord.me/skinsrestorer)
 - [Website](https://skinsrestorer.net/)
 
@@ -49,7 +52,7 @@ See [Contributors](https://github.com/SkinsRestorer/SkinsRestorerX/graphs/contri
 <dependency>
     <groupId>com</groupId>
     <artifactId>skinsrestorer</artifactId>
-    <version>13.7.5-SNAPSHOT</version>
+    <version>13.8.4-SNAPSHOT</version>
 </dependency>
 ````
 

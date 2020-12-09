@@ -69,7 +69,7 @@ public class SkinsRestorer {
     @Inject
     public SkinsRestorer(ProxyServer proxy, Logger logger, @DataDirectory Path dataFolder) {
         this.proxy = proxy;
-        this.logger = new SRLogger();
+        this.logger = new SRLogger(dataFolder.toFile());
         this.dataFolder = dataFolder;
     }
 
@@ -117,6 +117,20 @@ public class SkinsRestorer {
         this.skinsRestorerVelocityAPI = new SkinsRestorerVelocityAPI(this, this.mojangAPI, this.skinStorage);
 
         logger.logAlways("Enabled SkinsRestorer v" + getVersion());
+
+        // Run connection check
+        ServiceChecker checker = new ServiceChecker();
+        checker.setMojangAPI(this.mojangAPI);
+        checker.checkServices();
+        ServiceChecker.ServiceCheckResponse response = checker.getResponse();
+
+        if (response.getWorkingUUID() == 0 || response.getWorkingProfile() == 0) {
+            console.sendMessage(deserialize("§c[§4Critical§c] ------------------[§2SkinsRestorer §cis §c§l§nOFFLINE§c] --------------------------------- "));
+            console.sendMessage(deserialize("§c[§4Critical§c] §cPlugin currently can't fetch new skins."));
+            console.sendMessage(deserialize("§c[§4Critical§c] §cSee https://github.com/SkinsRestorer/SkinsRestorerX/wiki/Troubleshooting#connection for wiki "));
+            console.sendMessage(deserialize("§c[§4Critical§c] §cFor support, visit our discord at https://discord.me/servers/skinsrestorer "));
+            console.sendMessage(deserialize("§c[§4Critical§c] ------------------------------------------------------------------------------------------- "));
+        }
     }
 
     @Subscribe
@@ -132,15 +146,16 @@ public class SkinsRestorer {
 
         manager.getCommandConditions().addCondition("permOrSkinWithoutPerm", (context -> {
             VelocityCommandIssuer issuer = context.getIssuer();
-            if (issuer.hasPermission("skinsrestorer.playercmds") || Config.SKINWITHOUTPERM)
+            if (issuer.hasPermission("skinsrestorer.command") || Config.SKINWITHOUTPERM)
                 return;
 
             throw new ConditionFailedException("You don't have access to change your skin.");
         }));
         // Use with @Conditions("permOrSkinWithoutPerm")
 
-        CommandReplacements.getPermissionReplacements().forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+        CommandReplacements.permissions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
         CommandReplacements.descriptions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+        CommandReplacements.syntax.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
 
         new CommandPropertiesManager(manager, configPath, getClass().getClassLoader().getResourceAsStream("command-messages.properties"));
 
@@ -157,7 +172,8 @@ public class SkinsRestorer {
                         Config.MYSQL_PORT,
                         Config.MYSQL_DATABASE,
                         Config.MYSQL_USERNAME,
-                        Config.MYSQL_PASSWORD
+                        Config.MYSQL_PASSWORD,
+                        Config.MYSQL_CONNECTIONOPTIONS
                 );
 
                 mysql.openConnection();

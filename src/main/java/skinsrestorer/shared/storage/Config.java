@@ -32,12 +32,15 @@ public class Config {
     public static String MYSQL_PASSWORD = "pass";
     public static String MYSQL_SKINTABLE = "Skins";
     public static String MYSQL_PLAYERTABLE = "Players";
+    public static String MYSQL_CONNECTIONOPTIONS = "verifyServerCertificate=false&useSSL=false&serverTimezone=UTC";
     public static boolean DISABLE_ONJOIN_SKINS = false; // hidden
     public static boolean NO_SKIN_IF_LOGIN_CANCELED = true;
     public static boolean UPDATER_ENABLED = true;
     public static boolean UPDATER_PERIODIC = true;
-    public static boolean USE_NEW_PERMISSIONS = false;
     public static boolean DEBUG = false;
+    public static boolean DISMOUNT_PLAYER_ON_UPDATE = true;
+    public static boolean REMOUNT_PLAYER_ON_UPDATE = true;
+    public static boolean DISMOUNT_PASSENGERS_ON_UPDATE = false;
 
 
     // UPCOMING MULTIPLE LANGUAGE SUPPORT
@@ -57,7 +60,7 @@ public class Config {
         DEFAULT_SKINS_PREMIUM = config.getBoolean("DefaultSkins.ApplyForPremium", DEFAULT_SKINS_PREMIUM);
         DEFAULT_SKINS = config.getStringList("DefaultSkins.Names");
         DISABLED_SKINS_ENABLED = config.getBoolean("DisabledSkins.Enabled", DISABLED_SKINS_ENABLED);
-        DISABLED_SKINS = config.getStringList("CustomGUI.Names");
+        DISABLED_SKINS = config.getStringList("DisabledSkins.Names");
         CUSTOM_GUI_ENABLED = config.getBoolean("CustomGUI.Enabled", CUSTOM_GUI_ENABLED);
         CUSTOM_GUI_ONLY = config.getBoolean("CustomGUI.ShowOnlyCustomGUI", CUSTOM_GUI_ONLY);
         CUSTOM_GUI_SKINS = config.getStringList("CustomGUI.Names");
@@ -74,19 +77,22 @@ public class Config {
         MYSQL_PASSWORD = config.getString("MySQL.Password", MYSQL_PASSWORD);
         MYSQL_SKINTABLE = config.getString("MySQL.SkinTable", MYSQL_SKINTABLE);
         MYSQL_PLAYERTABLE = config.getString("MySQL.PlayerTable", MYSQL_PLAYERTABLE);
+        MYSQL_CONNECTIONOPTIONS = config.getString("MySQL.ConnectionOptions",MYSQL_CONNECTIONOPTIONS);
         DISABLE_ONJOIN_SKINS = config.getBoolean("DisableOnJoinSkins", DISABLE_ONJOIN_SKINS);
         NO_SKIN_IF_LOGIN_CANCELED = config.getBoolean("NoSkinIfLoginCanceled", NO_SKIN_IF_LOGIN_CANCELED);
         UPDATER_ENABLED = config.getBoolean("Updater.Enabled");
         UPDATER_PERIODIC = config.getBoolean("Updater.PeriodicChecks", UPDATER_PERIODIC);
-        USE_NEW_PERMISSIONS = config.getBoolean("Permissions.NewPermissions", USE_NEW_PERMISSIONS);
+        DISMOUNT_PLAYER_ON_UPDATE = config.getBoolean("DismountPlayerOnSkinUpdate", DISMOUNT_PLAYER_ON_UPDATE);
+        REMOUNT_PLAYER_ON_UPDATE = config.getBoolean("RemountPlayerOnSkinUpdate", REMOUNT_PLAYER_ON_UPDATE);
+        DISMOUNT_PASSENGERS_ON_UPDATE = config.getBoolean("DismountPassengersOnSkinUpdate", DISMOUNT_PASSENGERS_ON_UPDATE);
         DEBUG = config.getBoolean("Debug", DEBUG);
+
 
         if (!CUSTOM_GUI_ENABLED)
             CUSTOM_GUI_ONLY = false;
 
-        // Permissions
-        if (PER_SKIN_PERMISSIONS && !USE_NEW_PERMISSIONS)
-            System.out.println("[SkinsRestorer] Warning: PerSkinPermissions only work with Permissions.NewPermissions set to true!");
+        if (!DISMOUNT_PLAYER_ON_UPDATE)
+            REMOUNT_PLAYER_ON_UPDATE = false;
     }
 
     public static void set(String path, Object value) {

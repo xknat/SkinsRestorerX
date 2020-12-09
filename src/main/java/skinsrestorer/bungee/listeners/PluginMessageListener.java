@@ -1,18 +1,16 @@
 package skinsrestorer.bungee.listeners;
 
-import net.md_5.bungee.api.chat.TextComponent;
+import co.aikar.commands.bungee.contexts.OnlinePlayer;
+import net.md_5.bungee.ServerConnection;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 import skinsrestorer.bungee.SkinsRestorer;
-import skinsrestorer.shared.storage.Config;
-import skinsrestorer.shared.storage.Locale;
 import skinsrestorer.shared.utils.Property;
 
 import java.io.*;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 
 /**
@@ -28,55 +26,73 @@ public class PluginMessageListener implements Listener {
 
     @EventHandler
     public void onPluginMessage(PluginMessageEvent e) throws IOException {
-        if (!e.getTag().equals("sr:messagechannel"))
+        if (e.isCancelled()) {
+            return;
+        }
+        
+        if (!e.getTag().equals("sr:messagechannel") && !e.getTag().equals("sr:skinchange"))
             return;
 
-        /*if (!(e.getSender() instanceof ProxiedPlayer))
-            return;*/
+        if (!(e.getSender() instanceof ServerConnection)) {
+            e.setCancelled(true);
+            return;
+        }
 
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(e.getData()));
 
         String subchannel = in.readUTF();
 
-        if (subchannel.equals("getSkins")) {
-            String player = in.readUTF();
-            int page = in.readInt();
-            int skinNumber = 26 * page;
-            ProxiedPlayer p = plugin.getProxy().getPlayer(player);
+        switch (subchannel) {
+            //sr:messagechannel
+            case "getSkins": {
+                String player = in.readUTF();
+                int page = in.readInt();
+                if (page > 999)
+                    page = 999;
+                int skinNumber = 26 * page;
+                ProxiedPlayer p = plugin.getProxy().getPlayer(player);
 
-            Map<String, Property> skinsList = plugin.getSkinStorage().getSkinsRaw(skinNumber);
+                Map<String, Property> skinsList = plugin.getSkinStorage().getSkinsRaw(skinNumber);
 
-            byte[] ba = convertToByteArray(skinsList);
+                byte[] ba = convertToByteArray(skinsList);
 
-            ByteArrayOutputStream b = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(b);
-            try {
-                out.writeUTF("returnSkins");
-                out.writeUTF(player);
-                out.writeInt(page);
+                ByteArrayOutputStream b = new ByteArrayOutputStream();
+                DataOutputStream out = new DataOutputStream(b);
+                try {
+                    out.writeUTF("returnSkins");
+                    out.writeUTF(player);
+                    out.writeInt(page);
 
-                out.writeShort(ba.length);
-                out.write(ba);
+                    out.writeShort(ba.length);
+                    out.write(ba);
 
-            } catch (IOException e1) {
-                e1.printStackTrace();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                p.getServer().sendData("sr:messagechannel", b.toByteArray());
+                break;
             }
-            p.getServer().sendData("sr:messagechannel", b.toByteArray());
-        }
+            case "clearSkin": {
+                String player = in.readUTF();
+                ProxiedPlayer p = plugin.getProxy().getPlayer(player);
 
-        if (subchannel.equals("clearSkin")) {
-            String player = in.readUTF();
-            ProxiedPlayer p = plugin.getProxy().getPlayer(player);
+                plugin.getSkinCommand().onSkinClearOther(p, new OnlinePlayer(p));
+                break;
+            }
+            case "updateSkin": {
+                String player = in.readUTF();
+                ProxiedPlayer p = plugin.getProxy().getPlayer(player);
+                plugin.getSkinCommand().onSkinUpdateOther(p, new OnlinePlayer(p));
+                break;
+            }
+            case "setSkin": {
+                String player = in.readUTF();
+                String skin = in.readUTF();
+                ProxiedPlayer p = plugin.getProxy().getPlayer(player);
 
-            plugin.getSkinCommand().onSkinClear(p);
-        }
-
-        if (subchannel.equals("setSkin")) {
-            String player = in.readUTF();
-            String skin = in.readUTF();
-            ProxiedPlayer p = plugin.getProxy().getPlayer(player);
-
-            plugin.getSkinCommand().onSkinSet(p, skin);
+                plugin.getSkinCommand().onSkinSetOther(p, new OnlinePlayer(p), skin);
+                break;
+            }
         }
     }
 

@@ -18,7 +18,6 @@ import skinsrestorer.bukkit.commands.SrCommand;
 import skinsrestorer.bukkit.listener.PlayerJoin;
 import skinsrestorer.bukkit.skinfactory.SkinFactory;
 import skinsrestorer.bukkit.skinfactory.UniversalSkinFactory;
-import skinsrestorer.bungee.listeners.PluginMessageListener;
 import skinsrestorer.shared.storage.Config;
 import skinsrestorer.shared.storage.Locale;
 import skinsrestorer.shared.storage.SkinStorage;
@@ -39,7 +38,9 @@ public class SkinsRestorer extends JavaPlugin {
     @Getter
     private UpdateChecker updateChecker;
     @Getter
-    private String configPath = "plugins" + File.separator + "SkinsRestorer" + File.separator + "";
+    private SkinsRestorer plugin;
+    @Getter
+    private String configPath = getDataFolder().getPath();
 
     @Getter
     private boolean bungeeEnabled;
@@ -63,9 +64,10 @@ public class SkinsRestorer extends JavaPlugin {
 
     public void onEnable() {
         console = getServer().getConsoleSender();
-        srLogger = new SRLogger();
+        srLogger = new SRLogger(getDataFolder());
 
-        Metrics metrics = new Metrics(this);
+        int pluginId = 1669; // SkinsRestorer's ID on bStats, for Bukkit
+        Metrics metrics = new Metrics(this, pluginId);
         if (metrics.isEnabled()) {
             metrics.addCustomChart(new Metrics.SingleLineChart("mineskin_calls", MetricsCounter::collectMineskin_calls));
             metrics.addCustomChart(new Metrics.SingleLineChart("minetools_calls", MetricsCounter::collectMinetools_calls));
@@ -84,11 +86,11 @@ public class SkinsRestorer extends JavaPlugin {
                 YamlConfig mundoConfig = new YamlConfig("plugins" + File.separator + "MundoSK" + File.separator, "config", false);
                 mundoConfig.reload();
                 if (mundoConfig.getBoolean("enable_custom_skin_and_tablist")) {
-                    console.sendMessage("§e[§2SkinsRestorer§e] §a----------------------------------------------");
-                    console.sendMessage("§e[§2SkinsRestorer§e] §cWe have detected MundoSK on your server with §e'enable_custom_skin_and_tablist: true'§c.");
+                    console.sendMessage("§e[§2SkinsRestorer§e] §4----------------------------------------------");
+                    console.sendMessage("§e[§2SkinsRestorer§e] §cWe have detected MundoSK on your server with §e'enable_custom_skin_and_tablist: &4&ntrue&e'§c.");
                     console.sendMessage("§e[§2SkinsRestorer§e] §cThat setting is located in §e/plugins/MundoSK/config.yml");
-                    console.sendMessage("§e[§2SkinsRestorer§e] §cYou have to disable it to get SkinsRestorer to work.");
-                    console.sendMessage("§e[§2SkinsRestorer§e] §a----------------------------------------------");
+                    console.sendMessage("§e[§2SkinsRestorer§e] §cYou have to disable ('false') it to get SkinsRestorer to work.");
+                    console.sendMessage("§e[§2SkinsRestorer§e] §4----------------------------------------------");
                 }
             } catch (Exception ignored) {
             }
@@ -177,6 +179,7 @@ public class SkinsRestorer extends JavaPlugin {
                             });
 
                             SkinsGUI skinsGUI = new SkinsGUI(this);
+                            ++page; // start counting from 1
                             Inventory inventory = skinsGUI.getGUI(p, page, newSkinList);
 
                             Bukkit.getScheduler().scheduleSyncDelayedTask(SkinsRestorer.getInstance(), () -> {
@@ -190,6 +193,10 @@ public class SkinsRestorer extends JavaPlugin {
             });
             return;
         }
+
+        /* ***************************************** *
+         * [!] below is skipped if bungeeEnabled [!] *
+         * ***************************************** */
 
         // Init config files
         Config.load(configPath, getResource("config.yml"));
@@ -214,6 +221,22 @@ public class SkinsRestorer extends JavaPlugin {
 
         // Init API
         this.skinsRestorerBukkitAPI = new SkinsRestorerBukkitAPI(this, this.mojangAPI, this.skinStorage);
+
+        // Run connection check
+        if (!bungeeEnabled) {
+            ServiceChecker checker = new ServiceChecker();
+            checker.setMojangAPI(this.mojangAPI);
+            checker.checkServices();
+            ServiceChecker.ServiceCheckResponse response = checker.getResponse();
+
+            if (response.getWorkingUUID() == 0 || response.getWorkingProfile() == 0) {
+                console.sendMessage("§c[§4Critical§c] ------------------[§2SkinsRestorer §cis §c§l§nOFFLINE§c] --------------------------------- ");
+                console.sendMessage("§c[§4Critical§c] §cPlugin currently can't fetch new skins.");
+                console.sendMessage("§c[§4Critical§c] §cSee https://github.com/SkinsRestorer/SkinsRestorerX/wiki/Troubleshooting#connection for wiki ");
+                console.sendMessage("§c[§4Critical§c] §cFor support, visit our discord at https://discord.me/servers/skinsrestorer ");
+                console.sendMessage("§c[§4Critical§c] ------------------------------------------------------------------------------------------- ");
+            }
+        }
     }
 
     public void requestSkinsFromBungeeCord(Player p, int page) {
@@ -284,15 +307,17 @@ public class SkinsRestorer extends JavaPlugin {
 
         manager.getCommandConditions().addCondition("permOrSkinWithoutPerm", (context -> {
             BukkitCommandIssuer issuer = context.getIssuer();
-            if (issuer.hasPermission("skinsrestorer.playercmds") || Config.SKINWITHOUTPERM)
+            if (issuer.hasPermission("skinsrestorer.command") || Config.SKINWITHOUTPERM)
                 return;
 
             throw new ConditionFailedException("You don't have access to change your skin.");
         }));
         // Use with @Conditions("permOrSkinWithoutPerm")
 
-        CommandReplacements.getPermissionReplacements().forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+
+        CommandReplacements.permissions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
         CommandReplacements.descriptions.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
+        CommandReplacements.syntax.forEach((k, v) -> manager.getCommandReplacements().addReplacement(k, v));
 
         new CommandPropertiesManager(manager, configPath, getResource("command-messages.properties"));
 
@@ -310,7 +335,8 @@ public class SkinsRestorer extends JavaPlugin {
                         Config.MYSQL_PORT,
                         Config.MYSQL_DATABASE,
                         Config.MYSQL_USERNAME,
-                        Config.MYSQL_PASSWORD
+                        Config.MYSQL_PASSWORD,
+                        Config.MYSQL_CONNECTIONOPTIONS
                 );
 
                 mysql.openConnection();
@@ -344,7 +370,6 @@ public class SkinsRestorer extends JavaPlugin {
 
             // sometimes it does not get the right "bungeecord: true" setting
             // we will try it again with the old function from SR 13.3
-            // https://github.com/DoNotSpamPls/SkinsRestorerX/blob/cbddd95ac36acb5b1afff2b9f48d0fc5b5541cb0/src/main/java/skinsrestorer/bukkit/SkinsRestorer.java#L109
             if (!bungeeEnabled) {
                 bungeeEnabled = YamlConfiguration.loadConfiguration(new File("spigot.yml")).getBoolean("settings.bungeecord");
             }
@@ -352,16 +377,34 @@ public class SkinsRestorer extends JavaPlugin {
             bungeeEnabled = false;
         }
 
-        try {
-            File warning = new File("plugins" + File.separator + "SkinsRestorer" + File.separator + "Use bungee config for settings!");
-            warning.getParentFile().mkdirs();
-            if (!warning.exists() && bungeeEnabled)
-                warning.createNewFile();
+        StringBuilder sb1 = new
+                StringBuilder("Server is in bungee mode!");
+                sb1.append("\nif you are NOT using bungee in your network, set spigot.yml -> bungeecord: false");
+                sb1.append("\n\nInstalling Bungee:");
+                sb1.append("\nDownload the latest version from https://www.spigotmc.org/resources/skinsrestorer.2124/");
+                sb1.append("\nPlace the SkinsRestorer.jar in ./plugins/ folders of every spigot server.");
+                sb1.append("\nPlace the plugin in ./plugins/ folder of every BungeeCord server.");
+                sb1.append("\nCheck & set on every Spigot server spigot.yml -> bungeecord: true");
+                sb1.append("\nRestart (/restart or /stop) all servers [Plugman or /reload are NOT supported, use /stop or /end]");
+                sb1.append("\n\nBungeeCord now has SkinsRestorer installed with the integration of Spigot!");
+                sb1.append("\nYou may now Configure SkinsRestorer on Bungee (BungeeCord plugins folder /plugins/SkinsRestorer)");
 
-            if (warning.exists() && !bungeeEnabled)
-                warning.delete();
-        } catch (Exception ignored) {
-        }
+        File warning = new File(getDataFolder() + File.separator + "(README) Use bungee config for settings! (README)");
+            try {
+                if (!warning.exists() && bungeeEnabled) {
+                    warning.getParentFile().mkdirs();
+                    warning.createNewFile();
+
+                    FileWriter writer = new FileWriter(warning);
+
+                    writer.write(String.valueOf(sb1));
+                    writer.close();
+
+                }
+                if (warning.exists() && !bungeeEnabled)
+                    warning.delete();
+            } catch (Exception ignored) {
+            }
 
         if (bungeeEnabled) {
             this.srLogger.logAlways("-------------------------/Warning\\-------------------------");

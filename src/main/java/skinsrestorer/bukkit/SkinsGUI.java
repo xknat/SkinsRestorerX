@@ -3,8 +3,9 @@ package skinsrestorer.bukkit;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import lombok.Getter;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,13 +17,20 @@ import org.bukkit.inventory.meta.SkullMeta;
 import skinsrestorer.shared.storage.Config;
 import skinsrestorer.shared.storage.Locale;
 import skinsrestorer.shared.utils.ReflectionUtil;
+import skinsrestorer.shared.utils.SRLogger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SkinsGUI extends ItemStack implements Listener {
-    private SkinsRestorer plugin;
     private static ConcurrentHashMap<String, Integer> openedMenus = new ConcurrentHashMap<>();
+    @Getter
+    private SRLogger srLogger;
+    private SkinsRestorer plugin;
+    private CommandSender console;
 
     public SkinsGUI(SkinsRestorer plugin) {
         this.plugin = plugin;
@@ -32,7 +40,7 @@ public class SkinsGUI extends ItemStack implements Listener {
         NONE, PREV, NEXT, DELETE
     }
 
-    public class GuiGlass {
+    public static class GuiGlass {
         public GuiGlass(GlassType glassType) {
             this.glassType = glassType;
             this.create();
@@ -90,8 +98,9 @@ public class SkinsGUI extends ItemStack implements Listener {
     }
 
     public Inventory getGUI(Player p, int page, Map<String, Object> skinsList) {
-        Inventory inventory = Bukkit.createInventory(p, 54, Locale.SKINSMENU_TITLE.replace("&", "§") + page);
+        Inventory inventory = Bukkit.createInventory(p, 54, Locale.SKINSMENU_TITLE_NEW.replace("&", "§").replace("%page", ""+page));
 
+        //White Glass line
         inventory.setItem(36, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(37, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(38, new GuiGlass(GlassType.NONE).getItemStack());
@@ -102,45 +111,50 @@ public class SkinsGUI extends ItemStack implements Listener {
         inventory.setItem(43, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(44, new GuiGlass(GlassType.NONE).getItemStack());
 
-        //Middle button //remove skin
-        inventory.setItem(48, new GuiGlass(GlassType.DELETE).getItemStack());
-        inventory.setItem(49, new GuiGlass(GlassType.DELETE).getItemStack());
-        inventory.setItem(50, new GuiGlass(GlassType.DELETE).getItemStack());
-        //button place next
+        //empty place previous
         inventory.setItem(45, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(46, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(47, new GuiGlass(GlassType.NONE).getItemStack());
 
-        //button place next
+        //Middle button //remove skin
+        inventory.setItem(48, new GuiGlass(GlassType.DELETE).getItemStack());
+        inventory.setItem(49, new GuiGlass(GlassType.DELETE).getItemStack());
+        inventory.setItem(50, new GuiGlass(GlassType.DELETE).getItemStack());
+
+
+        //empty place next
         inventory.setItem(53, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(52, new GuiGlass(GlassType.NONE).getItemStack());
         inventory.setItem(51, new GuiGlass(GlassType.NONE).getItemStack());
 
+        //if page is above 1, adding Previous Page button.
+        if (page > 1) {
+            inventory.setItem(45, new GuiGlass(GlassType.PREV).getItemStack());
+            inventory.setItem(46, new GuiGlass(GlassType.PREV).getItemStack());
+            inventory.setItem(47, new GuiGlass(GlassType.PREV).getItemStack());
+        }
+
         skinsList.forEach((name, property) -> {
-            //if page is not 0, adding Previous Page button.
-            if (page != 0) {
-                inventory.setItem(45, new GuiGlass(GlassType.PREV).getItemStack());
-                inventory.setItem(46, new GuiGlass(GlassType.PREV).getItemStack());
-                inventory.setItem(47, new GuiGlass(GlassType.PREV).getItemStack());
-            }
+                inventory.addItem(createSkull(name, property));
 
-            inventory.addItem(createSkull(name, property));
-
-            //if the page is full, adding Next Page button.
-            if (inventory.firstEmpty() == -1 || inventory.getItem(26) != null) {
-                inventory.setItem(53, new GuiGlass(GlassType.NEXT).getItemStack());
-                inventory.setItem(52, new GuiGlass(GlassType.NEXT).getItemStack());
-                inventory.setItem(51, new GuiGlass(GlassType.NEXT).getItemStack());
-                return;
-            }
         });
 
+        //if the page is not empty, adding Next Page button.
+        //
+        if (inventory.firstEmpty() == -1 || inventory.getItem(26) != null && page < 999) {
+            inventory.setItem(53, new GuiGlass(GlassType.NEXT).getItemStack());
+            inventory.setItem(52, new GuiGlass(GlassType.NEXT).getItemStack());
+            inventory.setItem(51, new GuiGlass(GlassType.NEXT).getItemStack());
+        }
         return inventory;
     }
 
     public Inventory getGUI(Player p, int page) {
+        if (page > 999)
+            page = 999;
         int skinNumber = 36 * page;
         Map<String, Object> skinsList = plugin.getSkinStorage().getSkins(skinNumber);
+        ++page; // start counting from 1
         return this.getGUI(p, page, skinsList);
     }
 
@@ -152,7 +166,11 @@ public class SkinsGUI extends ItemStack implements Listener {
         sm.setDisplayName(name);
         sm.setLore(lore);
         is.setItemMeta(sm);
-        setSkin(is, ((Property) property).getValue());
+        try {
+            setSkin(is, ((Property) property).getValue());
+        } catch (Exception e){
+            this.srLogger.logAlways("[SkinsRestorer] ERROR: could not add '" + name + "' to SkinsGUI, skin might be corrupted or invalid!");
+            this.srLogger.log("[SkinsRestorer] DEBUG= " + e);        }
         return is;
     }
 
@@ -180,7 +198,7 @@ public class SkinsGUI extends ItemStack implements Listener {
     @EventHandler
     public void onCLick(InventoryClickEvent e) {
         try {
-            if (!e.getView().getTitle().contains("Skins Menu") && !e.getView().getTitle().contains(Locale.SKINSMENU_TITLE)) {
+            if (!e.getView().getTitle().contains("Skins Menu") && !e.getView().getTitle().contains(Locale.SKINSMENU_TITLE_NEW.replace("%page", ""))) {
                 return;
             }
         } catch (IllegalStateException ex) {
@@ -228,7 +246,7 @@ public class SkinsGUI extends ItemStack implements Listener {
                 Object skin = plugin.getSkinStorage().getSkinData(e.getCurrentItem().getItemMeta().getDisplayName(), false);
 
                 // PerSkinPermissions //todo: should be moved to setskin() as a command so it includes both cooldown and already used code from below
-                if (Config.PER_SKIN_PERMISSIONS && Config.USE_NEW_PERMISSIONS) {
+                if (Config.PER_SKIN_PERMISSIONS) {
                     String skinname = e.getCurrentItem().getItemMeta().getDisplayName();
                     if (!player.hasPermission("skinsrestorer.skin." + skinname)) {
                         if (!player.getName().equals(skinname) || (!player.hasPermission("skinsrestorer.ownskin") && !skinname.equalsIgnoreCase(player.getName()))) {
