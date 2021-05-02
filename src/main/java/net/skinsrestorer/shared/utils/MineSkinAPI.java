@@ -51,13 +51,16 @@ public class MineSkinAPI {
         this.logger = logger;
     }
 
-    public Object genSkin(String url) throws SkinRequestException {
-        String errResp = "";
+    public Object genSkin(String url, String skinType) throws SkinRequestException {
+        String skinVariant = "";
+        if (skinType.equalsIgnoreCase("steve") || skinType.equalsIgnoreCase("slim"))
+            skinVariant = "&variant=" + skinType;
 
+        String errResp = "";
         try {
             errResp = "";
 
-            String output = queryURL("url=" + URLEncoder.encode(url, "UTF-8"));
+            String output = queryURL("url=" + URLEncoder.encode(url, "UTF-8") + skinVariant);
             if (output.isEmpty()) //when both api time out
                 throw new SkinRequestException(Locale.ERROR_UPDATING_SKIN);
 
@@ -80,7 +83,7 @@ public class MineSkinAPI {
                     if (obj.has("delay"))
                         TimeUnit.SECONDS.sleep(obj.get("delay").getAsInt());
 
-                    return genSkin(url); // try again if given account fails (will stop if no more accounts)
+                    return genSkin(url, null); // try again if given account fails (will stop if no more accounts)
                 } else if (errResp.equals("No accounts available")) {
                     logger.log("[ERROR] MS No accounts available " + url);
                     throw new SkinRequestException(Locale.ERROR_MS_FULL);

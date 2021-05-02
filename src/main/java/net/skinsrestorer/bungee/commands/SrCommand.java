@@ -107,18 +107,18 @@ public class SrCommand extends BaseCommand {
 
     @Subcommand("drop|remove")
     @CommandPermission("%srDrop")
-    @CommandCompletion("player|skin @players")
+    @CommandCompletion("PLAYER|SKIN @players @players @players")
     @Description("%helpSrDrop")
     @Syntax(" <player|skin> <target> [target2]")
     public void onDrop(CommandSender sender, PlayerOrSkin e, String[] targets) {
-        if (e.name().equalsIgnoreCase("player"))
+        if (e == PlayerOrSkin.PLAYER)
             for (String targetPlayer : targets)
                 plugin.getSkinStorage().removePlayerSkin(targetPlayer);
         else
             for (String targetSkin : targets)
                 plugin.getSkinStorage().removeSkinData(targetSkin);
         String targetList = Arrays.toString(targets).substring(1, Arrays.toString(targets).length() - 1);
-        sender.sendMessage(TextComponent.fromLegacyText(Locale.DATA_DROPPED.replace("%playerOrSkin", e.name()).replace("%targets", targetList)));
+        sender.sendMessage(TextComponent.fromLegacyText(Locale.DATA_DROPPED.replace("%playerOrSkin", e.toString()).replace("%targets", targetList)));
     }
 
     @Subcommand("props")
@@ -126,7 +126,7 @@ public class SrCommand extends BaseCommand {
     @CommandCompletion("@players")
     @Description("%helpSrProps")
     @Syntax(" <target>")
-    public void onProps(CommandSender sender, OnlinePlayer target) {
+    public void onProps(CommandSender sender, @Single OnlinePlayer target) {
         InitialHandler h = (InitialHandler) target.getPlayer().getPendingConnection();
         LoginResult.Property prop = h.getLoginProfile().getProperties()[0];
 
@@ -165,7 +165,7 @@ public class SrCommand extends BaseCommand {
     @CommandCompletion("@players")
     @Description("%helpSrApplySkin")
     @Syntax(" <target>")
-    public void onApplySkin(CommandSender sender, OnlinePlayer target) {
+    public void onApplySkin(CommandSender sender, @Single OnlinePlayer target) {
         ProxyServer.getInstance().getScheduler().runAsync(SkinsRestorer.getInstance(), () -> {
             try {
                 final ProxiedPlayer p = target.getPlayer();
@@ -182,16 +182,16 @@ public class SrCommand extends BaseCommand {
 
     @Subcommand("createcustom")
     @CommandPermission("%srCreateCustom")
-    @CommandCompletion("@players")
+    @CommandCompletion("@skinName @skinUrl")
     @Description("%helpSrCreateCustom")
     @Syntax(" <name> <skinurl>")
-    public void onCreateCustom(CommandSender sender, String name, String skinUrl) {
+    public void onCreateCustom(CommandSender sender, String skinName, String skinUrl, @Optional SkinType skinType) {
         ProxyServer.getInstance().getScheduler().runAsync(SkinsRestorer.getInstance(), () -> {
             try {
                 if (C.validUrl(skinUrl)) {
-                    plugin.getSkinStorage().setSkinData(name, plugin.getMineSkinAPI().genSkin(skinUrl),
+                    plugin.getSkinStorage().setSkinData(skinName, plugin.getMineSkinAPI().genSkin(skinUrl, String.valueOf(skinType)),
                             Long.toString(System.currentTimeMillis() + (100L * 365 * 24 * 60 * 60 * 1000))); // "generate" and save skin for 100 years
-                    sender.sendMessage(TextComponent.fromLegacyText(Locale.SUCCESS_CREATE_SKIN.replace("%skin", name)));
+                    sender.sendMessage(TextComponent.fromLegacyText(Locale.SUCCESS_CREATE_SKIN.replace("%skin", skinName)));
                 } else {
                     sender.sendMessage(TextComponent.fromLegacyText(Locale.ERROR_INVALID_URLSKIN));
                 }
@@ -201,9 +201,15 @@ public class SrCommand extends BaseCommand {
         });
     }
 
-
+    @SuppressWarnings("unused")
     public enum PlayerOrSkin {
         PLAYER,
         SKIN,
+    }
+
+    @SuppressWarnings("unused")
+    public enum SkinType {
+        STEVE,
+        SLIM,
     }
 }
