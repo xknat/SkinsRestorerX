@@ -94,6 +94,10 @@ public class MineSkinAPI {
                 }
                 logger.log("[ERROR] MS:reason: " + errResp);
                 throw new SkinRequestException(Locale.ERROR_INVALID_URLSKIN);
+            } else {
+                logger.log("[ERROR] MS: Malformed format, trying again: " + url);
+                TimeUnit.SECONDS.sleep(2);
+                return genSkin(url, skinType); // try again
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "[ERROR] MS API Failure IOException (connection/disk): (" + url + ") " + e.getLocalizedMessage());
