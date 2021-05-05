@@ -55,7 +55,7 @@ public class PlayerJoin implements Listener {
                 Object texture;
 
                 if (C.validUrl(skin)) {
-                    plugin.getFactory().applySkin(player, plugin.getMineSkinAPI().genSkin(skin));
+                    plugin.getFactory().applySkin(player, plugin.getMineSkinAPI().genSkin(skin, null));
                 } else {
                     plugin.getFactory().applySkin(player, skinStorage.getOrCreateSkinForPlayer(skin, false));
                 }
